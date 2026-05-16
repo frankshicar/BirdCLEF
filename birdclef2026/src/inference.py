@@ -103,7 +103,7 @@ class InferenceEngine:
         Raises:
             FileNotFoundError: with the missing path in the message.
         """
-        for path in [self.checkpoint_path]:
+        for path in self.checkpoint_paths:
             if not os.path.exists(path):
                 raise FileNotFoundError(
                     f"Required path does not exist: {path}"
@@ -372,6 +372,7 @@ def _build_model_from_config(config: dict, checkpoint: dict) -> nn.Module:
         pool = config.get("pool", "avg")
         use_denoiser = config.get("use_denoiser", False)
         denoiser_channels = config.get("denoiser_channels", 64)
+        denoiser_type = config.get("denoiser_type", "residual")
         model = BirdCLEFModel(
             backbone_name=backbone,
             num_classes=num_classes,
@@ -379,6 +380,7 @@ def _build_model_from_config(config: dict, checkpoint: dict) -> nn.Module:
             pool=pool,
             use_denoiser=use_denoiser,
             denoiser_channels=denoiser_channels,
+            denoiser_type=denoiser_type,
         )
     except Exception as exc:  # pragma: no cover
         logger.warning("Could not build BirdCLEFModel (%s); using fallback.", exc)

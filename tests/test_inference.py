@@ -179,6 +179,20 @@ def test_verify_paths_raises_for_missing_backbone_weights():
         )
 
 
+def test_verify_paths_checks_all_ensemble_checkpoints():
+    """verify_paths() must validate every configured ensemble checkpoint."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        ckpt_path = _make_checkpoint(tmp_dir)
+        missing = os.path.join(tmp_dir, "missing_ensemble.pt")
+        engine = InferenceEngine(
+            checkpoint_path=ckpt_path,
+            checkpoint_paths=[ckpt_path, missing],
+        )
+        with pytest.raises(FileNotFoundError) as exc_info:
+            engine.verify_paths()
+        assert missing in str(exc_info.value)
+
+
 def test_verify_paths_passes_when_all_exist():
     """verify_paths() should not raise when all paths exist."""
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -599,6 +613,49 @@ def test_tta_uses_time_rolls_not_specaugment_masks():
 
     assert torch.equal(rolled, torch.roll(spec, shifts=2, dims=-1))
     assert torch.equal(torch.sort(rolled.flatten()).values, torch.sort(spec.flatten()).values)
+
+
+def test_build_model_from_config_passes_denoiser_type(monkeypatch):
+    """Checkpoint reconstruction must preserve denoiser_type from config."""
+    import sys
+    import types
+
+    import birdclef2026.src.inference as inference_module
+
+    captured = {}
+
+    class _FakeBirdCLEFModel(nn.Module):
+        def __init__(self, **kwargs):
+            super().__init__()
+            captured.update(kwargs)
+            self.fc = nn.Linear(1, 1)
+
+        def load_state_dict(self, state_dict, strict=True):
+            return None
+
+        def eval(self):
+            return self
+
+    fake_model_module = types.ModuleType("birdclef2026.src.model")
+    fake_model_module.BirdCLEFModel = _FakeBirdCLEFModel
+    monkeypatch.setitem(sys.modules, "birdclef2026.src.model", fake_model_module)
+
+    checkpoint = {
+        "model_state_dict": {},
+        "label_map": {"a": 0},
+    }
+    inference_module._build_model_from_config(
+        {
+            "backbone": "efficientnet_b0",
+            "pool": "mean_max",
+            "use_denoiser": True,
+            "denoiser_channels": 16,
+            "denoiser_type": "unet",
+        },
+        checkpoint,
+    )
+
+    assert captured["denoiser_type"] == "unet"
 
 
 # ===========================================================================

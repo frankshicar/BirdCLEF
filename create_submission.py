@@ -105,6 +105,7 @@ def main():
     BATCH_SIZE = 32
     DEVICE = "cpu"
     TTA = False
+    TTA_VIEWS = 3
     
     print("開始執行推論...")
     print(f"模型目錄: {MODEL_DIR}")
@@ -136,6 +137,7 @@ def main():
         device=DEVICE,
         batch_size=BATCH_SIZE,
         tta=TTA,
+        tta_views=TTA_VIEWS,
     )
     engine.verify_paths()
     print("推論引擎準備完成")

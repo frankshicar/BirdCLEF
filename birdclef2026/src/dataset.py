@@ -160,10 +160,14 @@ class DatasetBuilder:
                 )
         return samples
 
-    def _make_soundscape_group_id(self, filename: str, start_sec: float) -> str:
+    @staticmethod
+    def make_soundscape_group_id(
+        filename: str,
+        start_sec: float,
+        group_by: str = "filename",
+    ) -> str:
         """Build a grouping key for soundscape validation splits."""
         stem = os.path.splitext(filename)[0]
-        group_by = getattr(self, "soundscape_group_by", "filename")
 
         if group_by == "site":
             parts = stem.split("_")
@@ -179,7 +183,10 @@ class DatasetBuilder:
             return f"soundscape_hour:{stem}:{hour_block}"
         return f"soundscape_file:{stem}"
 
-    def _load_soundscape_samples(self) -> list[SampleRecord]:
+    def _load_soundscape_samples(
+        self,
+        soundscape_group_by: str = "filename",
+    ) -> list[SampleRecord]:
         """Parse train_soundscapes_labels.csv and build SampleRecord list.
 
         Deduplicates rows by (filename, start, end) — the CSV sometimes
@@ -235,7 +242,11 @@ class DatasetBuilder:
                         end_sec=end_sec,
                         label_vector=label_vector,
                         row_id=row_id,
-                        group_id=self._make_soundscape_group_id(filename, start_sec),
+                        group_id=self.make_soundscape_group_id(
+                            filename,
+                            start_sec,
+                            soundscape_group_by,
+                        ),
                         source="soundscape",
                     )
                 )
@@ -274,10 +285,8 @@ class DatasetBuilder:
                 f_min=50.0, f_max=15000.0, top_db=80.0,
             )
 
-        self.soundscape_group_by = soundscape_group_by
-
         all_samples = self._load_train_audio_samples()
-        all_samples += self._load_soundscape_samples()
+        all_samples += self._load_soundscape_samples(soundscape_group_by)
 
         if split_strategy in {"group", "soundscape_group"}:
             train_samples, val_samples = self._group_split(
@@ -327,7 +336,8 @@ class DatasetBuilder:
             replacement=True,
         )
 
-    def _stratified_split(        self,
+    def _stratified_split(
+        self,
         samples: list[SampleRecord],
         val_fraction: float,
         seed: int,

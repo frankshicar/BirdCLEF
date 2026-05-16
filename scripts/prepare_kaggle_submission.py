@@ -105,7 +105,7 @@ def main() -> None:
         readme = (
             "# BirdCLEF 2026 Trained Model\n\n"
             "Contents:\n"
-            "- `checkpoint.pt` — trained ResNet-18 checkpoint\n"
+            "- `checkpoint.pt` — trained BirdCLEF checkpoint\n"
             "- `birdclef2026/` — inference package\n\n"
             "## Quick start\n\n"
             "```python\n"

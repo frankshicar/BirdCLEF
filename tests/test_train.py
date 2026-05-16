@@ -418,3 +418,16 @@ def test_train_smoke_no_label_smoothing():
         trainer = Trainer(model=model, train_loader=loader, val_loader=loader,
                           config=config, device="cpu")
         trainer.train(num_epochs=2)  # should not raise
+
+
+def test_cpu_training_ignores_mixed_precision_flag():
+    """mixed_precision=True should not invoke CUDA autocast on a CPU device."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        model = _TinyLinearModel()
+        loader = _make_loader()
+        config = _base_train_config(tmp_dir)
+        config["mixed_precision"] = True
+
+        trainer = Trainer(model=model, train_loader=loader, val_loader=loader,
+                          config=config, device="cpu")
+        trainer.train(num_epochs=1)

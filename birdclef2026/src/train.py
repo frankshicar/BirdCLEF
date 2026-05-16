@@ -4,8 +4,13 @@ import json
 import logging
 import os
 
-import torch
 import torch.nn as nn
+import torch
+
+from birdclef2026.src.checkpoint_utils import (
+    REQUIRED_CHECKPOINT_KEYS,  # re-exported for legacy imports/tests
+    validate_checkpoint,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,26 +32,14 @@ except ImportError:  # pragma: no cover
         def evaluate(self) -> dict:
             return {"macro_roc_auc": 0.0, "per_class": {}}
 
-REQUIRED_CHECKPOINT_KEYS = ["model_state_dict", "config", "label_map", "epoch", "val_roc_auc"]
-
-
-def validate_checkpoint(path: str) -> dict:
-    """Load a checkpoint and validate that all required keys are present.
-
-    Args:
-        path: path to the checkpoint file (.pt / .pth)
-
-    Returns:
-        The checkpoint dict if all required keys are present.
-
-    Raises:
-        ValueError: if any required keys are missing, listing them in the message.
-    """
-    checkpoint = torch.load(path, map_location="cpu")
-    missing = [k for k in REQUIRED_CHECKPOINT_KEYS if k not in checkpoint]
-    if missing:
-        raise ValueError(f"Checkpoint is missing required keys: {missing}")
-    return checkpoint
+METRIC_ALIASES = {
+    "macro_roc_auc": "macro_roc_auc",
+    "roc_auc": "macro_roc_auc",
+    "val_roc_auc": "macro_roc_auc",
+    "macro_map": "macro_map",
+    "map": "macro_map",
+    "val_map": "macro_map",
+}
 
 
 class Trainer:
@@ -148,6 +141,17 @@ class Trainer:
             json.dump(self.history, f, indent=2)
         logger.debug("Training history saved to %s", self.history_path)
 
+    def _resolve_monitor_metric(self) -> tuple[str, str]:
+        """Return the configured metric name and Evaluator key."""
+        monitor_metric = self.config.get("monitor_metric", "macro_roc_auc")
+        metric_key = METRIC_ALIASES.get(monitor_metric)
+        if metric_key is None:
+            raise ValueError(
+                "monitor_metric must be one of: "
+                f"{sorted(METRIC_ALIASES.keys())}; got {monitor_metric!r}"
+            )
+        return monitor_metric, metric_key
+
     # ------------------------------------------------------------------
     # Training loop
     # ------------------------------------------------------------------
@@ -176,7 +180,7 @@ class Trainer:
         lr = self.config["learning_rate"]
         weight_decay = self.config.get("weight_decay", 1e-4)
         label_smoothing = self.config.get("label_smoothing", 0.0)
-        mixed_precision = self.config.get("mixed_precision", False)
+        mixed_precision = self.config.get("mixed_precision", False) and str(device).startswith("cuda")
         checkpoint_dir = self.config.get("checkpoint_dir", "./checkpoints")
         T_0 = self.config.get("T_0", 10)
         early_stopping_patience = self.config.get("early_stopping_patience", 0)
@@ -212,21 +216,7 @@ class Trainer:
         scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
 
         # ---- metric selection -------------------------------------------
-        monitor_metric = self.config.get("monitor_metric", "macro_roc_auc")
-        metric_aliases = {
-            "macro_roc_auc": "macro_roc_auc",
-            "roc_auc": "macro_roc_auc",
-            "val_roc_auc": "macro_roc_auc",
-            "macro_map": "macro_map",
-            "map": "macro_map",
-            "val_map": "macro_map",
-        }
-        metric_key = metric_aliases.get(monitor_metric)
-        if metric_key is None:
-            raise ValueError(
-                "monitor_metric must be one of: "
-                f"{sorted(metric_aliases.keys())}; got {monitor_metric!r}"
-            )
+        monitor_metric, metric_key = self._resolve_monitor_metric()
 
         # ---- resume ------------------------------------------------------
         start_epoch = 0
@@ -266,7 +256,7 @@ class Trainer:
                 optimizer.zero_grad()
 
                 if scaler is not None:
-                    with torch.cuda.amp.autocast():
+                    with torch.amp.autocast("cuda"):
                         logits = model(batch_specs)
                         loss = criterion(logits, batch_labels)
                     scaler.scale(loss).backward()
@@ -304,7 +294,7 @@ class Trainer:
                     batch_labels = batch_labels.to(device)
 
                     if scaler is not None:
-                        with torch.cuda.amp.autocast():
+                        with torch.amp.autocast("cuda"):
                             logits = model(batch_specs)
                             val_loss = criterion(logits, batch_labels)
                     else:
