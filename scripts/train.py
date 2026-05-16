@@ -128,11 +128,13 @@ def main() -> None:
         use_pcen=use_pcen,
     )
 
+    fit_mel_stats = config.get("fit_mel_stats", True)
+
     if use_pcen:
         logger.info("Using PCEN feature extraction (skipping mel stats fitting)")
         config["mel_mean"] = 0.0
         config["mel_std"] = 1.0
-    else:
+    elif fit_mel_stats:
         logger.info("Fitting mel spectrogram statistics over training set ...")
 
         preprocessor_for_stats = AudioPreprocessor(
@@ -162,6 +164,24 @@ def main() -> None:
             top_db=config.get("top_db", 80.0),
             mean=mel_mean,
             std=mel_std,
+            f_min=config.get("f_min", 50.0),
+            f_max=config.get("f_max", 15000.0),
+            use_pcen=False,
+        )
+    else:
+        logger.info(
+            "Using configured mel statistics: mel_mean=%.4f mel_std=%.4f",
+            config.get("mel_mean", 0.0),
+            config.get("mel_std", 1.0),
+        )
+        extractor = MelSpectrogramExtractor(
+            sample_rate=config["sample_rate"],
+            n_mels=config["n_mels"],
+            hop_length=config["hop_length"],
+            n_fft=config["n_fft"],
+            top_db=config.get("top_db", 80.0),
+            mean=config.get("mel_mean", 0.0),
+            std=config.get("mel_std", 1.0),
             f_min=config.get("f_min", 50.0),
             f_max=config.get("f_max", 15000.0),
             use_pcen=False,
@@ -208,7 +228,8 @@ def main() -> None:
     )
 
     # 8. Instantiate model
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    force_cpu = bool(int(os.environ.get("FORCE_CPU", "0")))
+    device = "cuda" if torch.cuda.is_available() and not force_cpu else "cpu"
     logger.info("Using device: %s", device)
 
     model = BirdCLEFModel(

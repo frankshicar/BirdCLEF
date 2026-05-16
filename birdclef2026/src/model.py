@@ -3,6 +3,33 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+_TORCHVISION_COMPAT_LIB = None
+
+
+def _ensure_torchvision_nms_schema() -> None:
+    """Define torchvision::nms schema when torchvision was installed without it.
+
+    Some CPU-only or mismatched torchvision wheels try to register a fake NMS
+    kernel during import, but the operator schema is absent.  timm imports
+    torchvision feature-extraction utilities even though this project does not
+    use NMS.  Defining the schema is enough to let torchvision import.
+    """
+    global _TORCHVISION_COMPAT_LIB
+    try:
+        torch._C._dispatch_has_kernel_for_dispatch_key("torchvision::nms", "Meta")
+    except RuntimeError:
+        try:
+            _TORCHVISION_COMPAT_LIB = torch.library.Library("torchvision", "DEF")
+            _TORCHVISION_COMPAT_LIB.define(
+                "nms(Tensor dets, Tensor scores, float iou_threshold) -> Tensor"
+            )
+        except RuntimeError:
+            pass
+
+
+_ensure_torchvision_nms_schema()
+
 import timm
 
 

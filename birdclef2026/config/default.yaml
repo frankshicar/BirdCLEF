@@ -14,6 +14,7 @@ f_max: 15000.0              # preserve high-freq harmonics
 use_pcen: false             # set true to use PCEN instead of log-mel
 mel_mean: 0.0               # updated after fit_stats
 mel_std: 1.0
+fit_mel_stats: true         # set false when mel_mean/mel_std are already known
 
 # Model
 backbone: resnet18

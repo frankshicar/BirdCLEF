@@ -32,6 +32,7 @@ n_fft: 2048
 top_db: 80.0
 mel_mean: -12.7009
 mel_std: 13.7642
+fit_mel_stats: false       # reuse known stats; set true to recompute after changing features
 f_min: 50.0              # preserve low-freq bird calls (owls, doves, etc.)
 f_max: 15000.0           # preserve high-freq harmonics
 use_pcen: false           # PCEN replaces log-mel; dynamically suppresses background noise
