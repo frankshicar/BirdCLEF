@@ -41,3 +41,4 @@ submission_exp/
 # Local caches
 *.log
 *.tmp
+logs/
