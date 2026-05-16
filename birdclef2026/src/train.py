@@ -187,6 +187,7 @@ class Trainer:
         early_stopping_patience = self.config.get("early_stopping_patience", 0)
         grad_clip_norm = self.config.get("grad_clip_norm", 5.0)
         monitor = TrainingSpectrogramMonitor.from_config(self.config)
+        log_batch_interval = int(self.config.get("log_batch_interval", 200))
 
         os.makedirs(checkpoint_dir, exist_ok=True)
         best_checkpoint_path = os.path.join(checkpoint_dir, "best_checkpoint.pt")
@@ -279,9 +280,8 @@ class Trainer:
                 total_train_loss += loss.item()
                 num_train_batches += 1
                 
-                # Print progress every 200 batches (less frequent)
-                if num_train_batches % 200 == 0:
-                    logger.debug("  Batch %d/%d, loss=%.4f", 
+                if log_batch_interval > 0 and num_train_batches % log_batch_interval == 0:
+                    logger.info("  Batch %d/%d, loss=%.4f",
                               num_train_batches, len(self.train_loader), loss.item())
 
             scheduler.step(epoch)

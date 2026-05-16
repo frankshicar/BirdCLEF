@@ -51,6 +51,7 @@ val_fraction: 0.1
 rating_threshold: 0.0
 grad_clip_norm: 5.0
 monitor_metric: macro_roc_auc
+log_batch_interval: 200
 split_strategy: soundscape_group
 soundscape_group_by: filename
 

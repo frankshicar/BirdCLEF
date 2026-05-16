@@ -19,7 +19,11 @@ if [[ -z "$PYTHON_BIN" ]]; then
 import torch
 PY
     then
-      PYTHON_BIN="$(command -v "$candidate")"
+      if [[ "$candidate" = /* ]]; then
+        PYTHON_BIN="$candidate"
+      else
+        PYTHON_BIN="$(command -v "$candidate")"
+      fi
       break
     fi
   done
@@ -45,7 +49,15 @@ echo "Log: $LOG_PATH"
 echo "FORCE_CPU: $FORCE_CPU"
 echo "Command: FORCE_CPU=$FORCE_CPU ${CMD[*]}"
 
-FORCE_CPU="$FORCE_CPU" nohup "${CMD[@]}" > "$LOG_PATH" 2>&1 &
+setsid bash -c '
+  set +e
+  echo "[$(date -u --iso-8601=seconds)] Starting training"
+  echo "Command: FORCE_CPU=$0 ${@:2}"
+  FORCE_CPU="$0" "${@:2}"
+  status="$?"
+  echo "[$(date -u --iso-8601=seconds)] Training exited with status $status"
+  exit "$status"
+' "$FORCE_CPU" "${CMD[@]}" > "$LOG_PATH" 2>&1 < /dev/null &
 PID="$!"
 echo "$PID" > "$PID_PATH"
 

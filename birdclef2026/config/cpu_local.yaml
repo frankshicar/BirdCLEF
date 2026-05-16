@@ -1,0 +1,79 @@
+# Conservative CPU training configuration.
+# Use this while the local PyTorch build cannot run RTX 5090 CUDA kernels.
+
+data_dir: ./data
+
+backbone: efficientnet_b0
+pool: mean_max
+pretrained: true
+use_denoiser: true
+denoiser_type: residual
+denoiser_channels: 64
+
+num_epochs: 200
+batch_size: 8
+learning_rate: 0.001
+weight_decay: 0.0001
+seed: 42
+
+sample_rate: 32000
+segment_duration: 5.0
+hop_duration: 2.5
+highpass_cutoff: 50.0
+
+n_mels: 160
+hop_length: 320
+n_fft: 2048
+top_db: 80.0
+mel_mean: -12.7009
+mel_std: 13.7642
+fit_mel_stats: false
+f_min: 50.0
+f_max: 15000.0
+use_pcen: false
+
+use_spec_augment: true
+time_mask_param: 30
+freq_mask_param: 20
+use_mixup: true
+mixup_alpha: 0.4
+
+label_smoothing: 0.05
+mixed_precision: false
+val_fraction: 0.1
+rating_threshold: 0.0
+grad_clip_norm: 5.0
+monitor_metric: macro_roc_auc
+log_batch_interval: 20
+split_strategy: soundscape_group
+soundscape_group_by: filename
+
+checkpoint_dir: ./checkpoints
+resume_checkpoint: null
+early_stopping_patience: 15
+num_workers: 0
+
+use_weighted_sampler: true
+source_weights:
+  train_audio: 1.0
+  soundscape: 2.0
+
+spectrogram_monitor:
+  enabled: false
+  output_dir: ./checkpoints/spectrogram_monitor
+  epoch_interval: 1
+  batch_interval: 0
+  max_batches_per_epoch: 1
+  max_layers: 64
+  save_npy: true
+  save_pgm: true
+  layer_name_regex: null
+
+inference_batch_size: 32
+tta: false
+tta_views: 3
+ensemble_checkpoints: []
+
+noise_dir: /home/sbplab/frank/BirdCLEF+/data/ESC-50/audio
+noise_snr_db_range: [5.0, 30.0]
+noise_augment_p: 0.5

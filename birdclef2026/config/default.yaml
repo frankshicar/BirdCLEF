@@ -34,6 +34,7 @@ seed: 42
 mixed_precision: true
 resume_checkpoint: null
 monitor_metric: macro_roc_auc # competition metric; mAP is logged as diagnostic only
+log_batch_interval: 200
 split_strategy: soundscape_group # stratified | group | soundscape_group
 soundscape_group_by: filename    # filename | site | site_date | hour
 source_weights:
