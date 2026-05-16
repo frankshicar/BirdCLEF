@@ -78,6 +78,16 @@ source_weights:
 # 2. Resume from best_checkpoint.pt with lower learning rates and keep
 #    split_strategy=soundscape_group to preserve deployment-like validation.
 fine_tune_mode: false
+spectrogram_monitor:
+  enabled: false
+  output_dir: ./checkpoints/spectrogram_monitor
+  epoch_interval: 1
+  batch_interval: 0
+  max_batches_per_epoch: 1
+  max_layers: 64
+  save_npy: true
+  save_pgm: true
+  layer_name_regex: null
 
 # Background noise augmentation (optional)
 # Download ESC-50 or MUSAN and set noise_dir to the folder path to enable

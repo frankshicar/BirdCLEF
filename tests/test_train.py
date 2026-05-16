@@ -431,3 +431,33 @@ def test_cpu_training_ignores_mixed_precision_flag():
         trainer = Trainer(model=model, train_loader=loader, val_loader=loader,
                           config=config, device="cpu")
         trainer.train(num_epochs=1)
+
+
+def test_spectrogram_monitor_writes_artifacts():
+    """Enabled training monitor should write dependency-free npy/pgm artifacts."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        model = _TinyLinearModel()
+        loader = _make_loader()
+        config = _base_train_config(tmp_dir)
+        monitor_dir = os.path.join(tmp_dir, "monitor")
+        config["spectrogram_monitor"] = {
+            "enabled": True,
+            "output_dir": monitor_dir,
+            "epoch_interval": 1,
+            "batch_interval": 0,
+            "max_batches_per_epoch": 1,
+            "max_layers": 4,
+            "save_npy": True,
+            "save_pgm": True,
+        }
+
+        trainer = Trainer(model=model, train_loader=loader, val_loader=loader,
+                          config=config, device="cpu")
+        trainer.train(num_epochs=1)
+
+        written_files = []
+        for root, _dirs, files in os.walk(monitor_dir):
+            written_files.extend(os.path.join(root, name) for name in files)
+
+        assert any(path.endswith(".npy") for path in written_files)
+        assert any(path.endswith(".pgm") for path in written_files)

@@ -40,6 +40,19 @@ source_weights:
   soundscape: 2.0
 fine_tune_mode: false
 
+# Training monitor (disabled by default). When enabled, writes input mel and
+# selected layer activations as .npy + .pgm heatmaps for inspection.
+spectrogram_monitor:
+  enabled: false
+  output_dir: ./checkpoints/spectrogram_monitor
+  epoch_interval: 1
+  batch_interval: 0        # 0 = first batch only
+  max_batches_per_epoch: 1
+  max_layers: 64
+  save_npy: true
+  save_pgm: true
+  layer_name_regex: null   # e.g. "denoiser|backbone.conv"
+
 # Augmentation
 use_spec_augment: true
 time_mask_param: 30

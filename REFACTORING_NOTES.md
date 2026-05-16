@@ -11,6 +11,8 @@
 - Weighted sampling can up-weight domains with `source_weights`, for example soundscape fine-tuning.
 - Inference TTA no longer uses SpecAugment masks. If enabled, it uses deterministic time-roll views only.
 - Added `scripts/benchmark_inference.py` for CPU runtime checks before ensembling.
+- Optional training monitor can save input mels and layer activations as `.npy`
+  and `.pgm` heatmaps for checking whether denoisers/backbones behave as expected.
 
 ## Recommended workflow
 
@@ -30,4 +32,12 @@ source_weights:
   soundscape: 2.0
 tta: false
 tta_views: 3
+spectrogram_monitor:
+  enabled: false
+  output_dir: ./checkpoints/spectrogram_monitor
+  batch_interval: 0
+  max_batches_per_epoch: 1
 ```
+
+Enable `spectrogram_monitor.enabled` only for short diagnostic runs or sparse
+intervals; saving every layer for every batch will generate many files.

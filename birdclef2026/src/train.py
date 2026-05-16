@@ -11,6 +11,7 @@ from birdclef2026.src.checkpoint_utils import (
     REQUIRED_CHECKPOINT_KEYS,  # re-exported for legacy imports/tests
     validate_checkpoint,
 )
+from birdclef2026.src.monitoring import TrainingSpectrogramMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +186,7 @@ class Trainer:
         T_0 = self.config.get("T_0", 10)
         early_stopping_patience = self.config.get("early_stopping_patience", 0)
         grad_clip_norm = self.config.get("grad_clip_norm", 5.0)
+        monitor = TrainingSpectrogramMonitor.from_config(self.config)
 
         os.makedirs(checkpoint_dir, exist_ok=True)
         best_checkpoint_path = os.path.join(checkpoint_dir, "best_checkpoint.pt")
@@ -241,11 +243,12 @@ class Trainer:
         logger.info("Starting training for %d epochs...", num_epochs)
         for epoch in range(start_epoch, start_epoch + num_epochs):
             logger.info("=== Epoch %d/%d ===", epoch + 1, start_epoch + num_epochs)
+            monitor.on_epoch_start()
             model.train()
             total_train_loss = 0.0
             num_train_batches = 0
 
-            for batch_specs, batch_labels in self.train_loader:
+            for batch_idx, (batch_specs, batch_labels) in enumerate(self.train_loader):
                 batch_specs = batch_specs.to(device)
                 batch_labels = batch_labels.to(device)
 
@@ -257,7 +260,8 @@ class Trainer:
 
                 if scaler is not None:
                     with torch.amp.autocast("cuda"):
-                        logits = model(batch_specs)
+                        with monitor.capture(model, batch_specs, epoch, batch_idx, "train"):
+                            logits = model(batch_specs)
                         loss = criterion(logits, batch_labels)
                     scaler.scale(loss).backward()
                     scaler.unscale_(optimizer)
@@ -265,7 +269,8 @@ class Trainer:
                     scaler.step(optimizer)
                     scaler.update()
                 else:
-                    logits = model(batch_specs)
+                    with monitor.capture(model, batch_specs, epoch, batch_idx, "train"):
+                        logits = model(batch_specs)
                     loss = criterion(logits, batch_labels)
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
