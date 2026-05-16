@@ -1,0 +1,87 @@
+# Local training configuration for BirdCLEF 2026
+# Inherits from default.yaml, overrides data paths for local environment
+
+# Data paths (local)
+data_dir: ./data
+
+# Model architecture
+backbone: efficientnet_b0
+pool: mean_max
+pretrained: true
+use_denoiser: true
+denoiser_type: residual    # 回退到 residual
+denoiser_channels: 64      # 回退到 64ch
+
+# Training hyperparameters
+num_epochs: 200
+batch_size: 64
+learning_rate: 0.001
+weight_decay: 0.0001
+seed: 42
+
+# Audio preprocessing
+sample_rate: 32000
+segment_duration: 5.0
+hop_duration: 2.5
+highpass_cutoff: 50.0    # Hz; only remove very low-freq noise (wind, electrical hum)
+
+# Mel spectrogram
+n_mels: 160
+hop_length: 320
+n_fft: 2048
+top_db: 80.0
+mel_mean: -12.7009
+mel_std: 13.7642
+f_min: 50.0              # preserve low-freq bird calls (owls, doves, etc.)
+f_max: 15000.0           # preserve high-freq harmonics
+use_pcen: false           # PCEN replaces log-mel; dynamically suppresses background noise
+
+# Augmentation
+use_spec_augment: true
+time_mask_param: 30
+freq_mask_param: 20
+use_mixup: true
+mixup_alpha: 0.4
+
+# Training settings
+label_smoothing: 0.05
+mixed_precision: true
+val_fraction: 0.1
+rating_threshold: 0.0
+grad_clip_norm: 5.0
+monitor_metric: macro_roc_auc
+split_strategy: soundscape_group
+soundscape_group_by: filename
+
+# Checkpointing
+checkpoint_dir: ./checkpoints
+resume_checkpoint: null
+
+# Inference settings
+inference_batch_size: 32
+num_workers: 2
+tta: false
+tta_views: 3
+ensemble_checkpoints: []
+
+# Early stopping (0 = disabled)
+early_stopping_patience: 15
+
+# Class imbalance handling
+use_weighted_sampler: true
+source_weights:
+  train_audio: 1.0
+  soundscape: 2.0
+
+# Fine-tuning recipe:
+# 1. Train normally from ImageNet/pretrained weights.
+# 2. Resume from best_checkpoint.pt with lower learning rates and keep
+#    split_strategy=soundscape_group to preserve deployment-like validation.
+fine_tune_mode: false
+
+# Background noise augmentation (optional)
+# Download ESC-50 or MUSAN and set noise_dir to the folder path to enable
+# e.g. noise_dir: ./data/esc50/audio
+noise_dir: /home/sbplab/frank/BirdCLEF+/data/ESC-50/audio
+noise_snr_db_range: [5.0, 30.0]
+noise_augment_p: 0.5

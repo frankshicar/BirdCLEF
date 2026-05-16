@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: birdclef-gpu-pod
+  labels:
+    app: birdclef
+spec:
+  restartPolicy: Never
+  containers:
+  - name: birdclef-container
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        nvidia.com/gpu: 1
+    volumeMounts:
+    - name: birdclef-data
+      mountPath: /workspace/data
+  volumes:
+  - name: birdclef-data
+    hostPath:
+      path: /home/sbplab/frank/BirdCLEF+
+      type: Directory

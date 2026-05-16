@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Large competition data and generated artifacts
+data/
+checkpoints/
+runs/
+outputs/
+wandb/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.tflite
+*.zip
+submission.csv
+
+# Kaggle packaging snapshots
+kaggle_submission/
+submission_exp/
+
+# Local caches
+*.log
+*.tmp

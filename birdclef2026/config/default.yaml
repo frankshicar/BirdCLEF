@@ -1,0 +1,58 @@
+# Audio
+sample_rate: 32000
+segment_duration: 5.0
+hop_duration: 5.0           # set < segment_duration for overlapping windows
+highpass_cutoff: 50.0       # Hz; remove low-freq noise (wind, electrical hum)
+
+# Feature extraction
+n_mels: 160
+hop_length: 320
+n_fft: 2048
+top_db: 80.0
+f_min: 50.0                 # preserve low-freq bird calls (owls, doves, etc.)
+f_max: 15000.0              # preserve high-freq harmonics
+use_pcen: false             # set true to use PCEN instead of log-mel
+mel_mean: 0.0               # updated after fit_stats
+mel_std: 1.0
+
+# Model
+backbone: resnet18
+pool: avg                   # avg | attention
+use_denoiser: false
+denoiser_channels: 64
+
+# Training
+num_epochs: 30
+batch_size: 64
+learning_rate: 1.0e-3
+weight_decay: 1.0e-4
+rating_threshold: 3.0
+label_smoothing: 0.05
+val_fraction: 0.1
+seed: 42
+mixed_precision: true
+resume_checkpoint: null
+monitor_metric: macro_roc_auc # competition metric; mAP is logged as diagnostic only
+split_strategy: soundscape_group # stratified | group | soundscape_group
+soundscape_group_by: filename    # filename | site | site_date | hour
+source_weights:
+  train_audio: 1.0
+  soundscape: 2.0
+fine_tune_mode: false
+
+# Augmentation
+use_spec_augment: true
+time_mask_param: 30
+freq_mask_param: 20
+use_mixup: true
+mixup_alpha: 0.4
+
+# Inference
+inference_batch_size: 32
+tta: false                  # uses time-roll views only; no SpecAugment masking at inference
+tta_views: 3
+ensemble_checkpoints: []
+
+# Paths (override at runtime)
+data_dir: /kaggle/input/birdclef-2026
+checkpoint_dir: ./checkpoints
